@@ -1,0 +1,33 @@
+name: Rafraîchir les offres Adzuna
+# MANUEL uniquement tant que le compte Adzuna est en mode test (25 appels au total).
+# Pour passer en quotidien (formule payante ~8 £/mois, 500 appels/jour), décommentez le bloc schedule :
+#   schedule:
+#     - cron: "0 5 * * *"   # tous les jours à 05:00 UTC
+on:
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: "Nombre maximum d'appels API (1 par métier)"
+        default: "20"
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Relevé Adzuna (alternances exclues)
+        env:
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          ADZUNA_OUT: _src/data/adzuna.json
+        run: python3 _src/refresh_adzuna.py --budget "${{ github.event.inputs.budget || '20' }}"
+      - name: Régénérer le site
+        run: cd _src && SITE_OUT=.. python3 build_site.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -m "Données Adzuna du $(date -u +%F)" && git push || echo "Rien à commiter"

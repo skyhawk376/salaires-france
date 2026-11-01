@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://skyhawk376.github.io/salaires-france/sitemap.xml
